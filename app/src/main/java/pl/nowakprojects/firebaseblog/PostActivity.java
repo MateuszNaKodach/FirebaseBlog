@@ -1,27 +1,60 @@
 package pl.nowakprojects.firebaseblog;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.net.Uri;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
+import android.widget.Toast;
+
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
 public class PostActivity extends AppCompatActivity {
 
     private static final int GALLERY_REQUEST = 1;
+    private Uri mImageUri = null;
+    private StorageReference mStorage;
+    private DatabaseReference mDatabase;
 
+    private ProgressDialog mProgressDialog;
     private ImageButton mSelectImage;
+    private EditText mPostTitle;
+    private EditText mPostDesc;
+    private Button mSubmitButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_post);
 
+        initFirebase();
         initUserInterface();
     }
 
+    private void initFirebase() {
+        mStorage = FirebaseStorage.getInstance().getReference();
+        mDatabase = FirebaseDatabase.getInstance().getReference().child("FirebaseBlog");
+    }
+
     private void initUserInterface(){
+        mProgressDialog = new ProgressDialog(this);
+        mProgressDialog.setMessage("Posting to Blog...");
+
+        mPostTitle = (EditText) findViewById(R.id.titleTextField);
+        mPostDesc = (EditText) findViewById(R.id.descriptionTextField);
         mSelectImage = (ImageButton) findViewById(R.id.selectImage);
         mSelectImage.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -29,6 +62,64 @@ public class PostActivity extends AppCompatActivity {
                 selectPostImage();
             }
         });
+        mSubmitButton = (Button) findViewById(R.id.submitButton);
+        mSubmitButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startPosting();
+            }
+        });
+    }
+
+    private void startPosting() {
+
+        final String title_val = mPostTitle.getText().toString().trim();
+        final String desc_val = mPostDesc.getText().toString().trim();
+
+        if(postIsCompleted()){
+            addPostToFirebase(title_val, desc_val);
+        }
+
+    }
+
+    private void addPostToFirebase(final String title_val, final String desc_val) {
+        mProgressDialog.show();
+
+        StorageReference filepath = mStorage.child("Blog_Images").child(mImageUri.getLastPathSegment());
+        filepath.putFile(mImageUri).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+            @Override
+            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                Uri downloadedUri = taskSnapshot.getDownloadUrl();
+                addPostToDatabase(title_val, desc_val, downloadedUri);
+
+                mProgressDialog.dismiss();
+
+                startActivity(new Intent(PostActivity.this, MainActivity.class));
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Toast.makeText(PostActivity.this,"Something went wrong!",Toast.LENGTH_LONG).show();
+                mProgressDialog.dismiss();
+            }
+        });
+
+    }
+
+    private void addPostToDatabase(String title_val, String desc_val, Uri downloadedUri) {
+        DatabaseReference newPost = mDatabase.push();
+        newPost.child("title").setValue(title_val);
+        newPost.child("desc").setValue(desc_val);
+
+        if(downloadedUri!=null)
+            newPost.child("image").setValue(downloadedUri.toString());
+    }
+
+
+    private boolean postIsCompleted(){
+        return !TextUtils.isEmpty(mPostTitle.getText().toString()) &&
+                !TextUtils.isEmpty(mPostDesc.getText().toString()) &&
+                mImageUri != null;
     }
 
     private void selectPostImage(){
@@ -55,6 +146,7 @@ public class PostActivity extends AppCompatActivity {
     }
 
     private void setPostImageFromUri(Uri imageUri){
+        mImageUri = imageUri;
         mSelectImage.setImageURI(imageUri);
     }
 }
