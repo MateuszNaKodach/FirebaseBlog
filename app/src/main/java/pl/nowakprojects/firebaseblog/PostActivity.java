@@ -14,10 +14,17 @@ import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -28,6 +35,9 @@ public class PostActivity extends AppCompatActivity {
     private Uri mImageUri = null;
     private StorageReference mStorage;
     private DatabaseReference mDatabase;
+    private FirebaseAuth mAuth;
+    private FirebaseUser mCurrentUser;
+    private DatabaseReference mUserDatabase;
 
     private ProgressDialog mProgressDialog;
     private ImageButton mSelectImage;
@@ -47,6 +57,9 @@ public class PostActivity extends AppCompatActivity {
     private void initFirebase() {
         mStorage = FirebaseStorage.getInstance().getReference();
         mDatabase = FirebaseDatabase.getInstance().getReference().child("FirebaseBlog");
+        mUserDatabase = FirebaseDatabase.getInstance().getReference().child("Users");
+        mAuth = FirebaseAuth.getInstance();
+        mCurrentUser = mAuth.getCurrentUser();
     }
 
     private void initUserInterface(){
@@ -106,13 +119,33 @@ public class PostActivity extends AppCompatActivity {
 
     }
 
-    private void addPostToDatabase(String title_val, String desc_val, Uri downloadedUri) {
-        DatabaseReference newPost = mDatabase.push();
-        newPost.child("title").setValue(title_val);
-        newPost.child("desc").setValue(desc_val);
+    private void addPostToDatabase(final String title_val, final String desc_val, final Uri downloadedUri) {
+        final DatabaseReference newPost = mDatabase.push();
+        mUserDatabase.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                newPost.child("title").setValue(title_val);
+                newPost.child("desc").setValue(desc_val);
+                newPost.child("image").setValue(downloadedUri.toString());
+                newPost.child("uid").setValue(mCurrentUser.getUid());
+                newPost.child("username").setValue(dataSnapshot.child("name").getValue())
+                        .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        if(task.isSuccessful())
+                            startActivity(new Intent(PostActivity.this,MainActivity.class));
+                        else
+                            Toast.makeText(getApplicationContext(),"Something went wrong!",Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
 
-        if(downloadedUri!=null)
-            newPost.child("image").setValue(downloadedUri.toString());
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+
     }
 
 

@@ -32,7 +32,7 @@
 
     <Button
         android:text="Login"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/loginPasswordField"
         android:layout_centerHorizontal="true"
@@ -44,5 +44,13 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
-        android:id="@+id/button3" />
+        android:id="@+id/registerButton" />
+
+    <com.google.android.gms.common.SignInButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/loginButton"
+        android:layout_centerHorizontal="true"
+        android:id="@+id/googleButton"
+        android:layout_marginTop="30dp"/>
 </RelativeLayout>

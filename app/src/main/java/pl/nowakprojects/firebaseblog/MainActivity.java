@@ -9,6 +9,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Toast;
 
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
@@ -47,9 +48,19 @@ public class MainActivity extends AppCompatActivity {
                 ) {
             @Override
             protected void populateViewHolder(BlogViewHolder viewHolder, Blog model, int position) {
+                final String post_key = getRef(position).getKey();
+
                 viewHolder.setTitle(model.getTitle());
                 viewHolder.setDesc(model.getDesc());
                 viewHolder.setImage(MainActivity.this, model.getImage());
+                viewHolder.setUsername(model.getUsername());
+
+                viewHolder.getView().setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+
+                    }
+                });
             }
         };
 
@@ -63,6 +74,8 @@ public class MainActivity extends AppCompatActivity {
 
         initFirebase();
         initUserInterface();
+
+        //checkIfUserExistsInDatabase();
     }
 
     private void initFirebase() {
@@ -96,20 +109,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void checkIfUserExistsInDatabase() {
-        final String userId = mAuth.getCurrentUser().getUid();
+        if(mAuth.getCurrentUser()!=null) {
+            final String userId = mAuth.getCurrentUser().getUid();
 
-        mUsersDatabase.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (!dataSnapshot.hasChild(userId))
-                   startAccountSetupActivity();
-            }
+            mUsersDatabase.addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    if (!dataSnapshot.hasChild(userId))
+                        startAccountSetupActivity();
+                }
 
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
 
-            }
-        });
+                }
+            });
+        }
     }
 
     private void startAccountSetupActivity() {
