@@ -1,5 +1,6 @@
 package pl.nowakprojects.firebaseblog;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -25,6 +26,8 @@ public class LoginActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private DatabaseReference mUsersDatabase;
 
+    private ProgressDialog mProgressDialog;
+
     private EditText mLoginEmailField;
     private EditText mPasswordEmailField;
 
@@ -42,9 +45,13 @@ public class LoginActivity extends AppCompatActivity {
     private void initFirebase() {
         mAuth = FirebaseAuth.getInstance();
         mUsersDatabase = FirebaseDatabase.getInstance().getReference().child("Users");
+        mUsersDatabase.keepSynced(true);
     }
 
     private void initUserInterface() {
+        mProgressDialog = new ProgressDialog(this);
+        mProgressDialog.setMessage("Checking login...");
+
         mLoginEmailField = (EditText) findViewById(R.id.loginEmailField);
         mPasswordEmailField = (EditText) findViewById(R.id.loginPasswordField);
         
@@ -62,12 +69,15 @@ public class LoginActivity extends AppCompatActivity {
         String password = mPasswordEmailField.getText().toString().trim();
 
         if(isLoginFormCompleted(email,password)){
+            mProgressDialog.show();
             mAuth.signInWithEmailAndPassword(email,password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                 @Override
                 public void onComplete(@NonNull Task<AuthResult> task) {
                     if(task.isSuccessful()){
+                        mProgressDialog.dismiss();
                         checkIfUserExistsInDatabase();
                     }else{
+                        mProgressDialog.dismiss();
                         Toast.makeText(LoginActivity.this,"Error Login!",Toast.LENGTH_LONG).show();
                     }
 
@@ -82,13 +92,10 @@ public class LoginActivity extends AppCompatActivity {
         mUsersDatabase.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                if(dataSnapshot.hasChild(userId)){
-                    Intent mainIntent = new Intent(LoginActivity.this, MainActivity.class);
-                    mainIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP); //uzytkownik nie moze wrócić do poprzedniej
-                    startActivity(mainIntent);
-                }else{
-                    Toast.makeText(LoginActivity.this,"You need to setup your account!",Toast.LENGTH_LONG).show();
-                }
+                if(dataSnapshot.hasChild(userId))
+                    startMainActivity();
+                else
+                   startAccountSetupActivity();
             }
 
             @Override
@@ -96,6 +103,18 @@ public class LoginActivity extends AppCompatActivity {
 
             }
         });
+    }
+
+    private void startAccountSetupActivity() {
+        Intent setupIntent = new Intent(LoginActivity.this, SetupActivity.class);
+        setupIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP); //uzytkownik nie moze wrócić do poprzedniej
+        startActivity(setupIntent);
+    }
+
+    private void startMainActivity() {
+        Intent mainIntent = new Intent(LoginActivity.this, MainActivity.class);
+        mainIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP); //uzytkownik nie moze wrócić do poprzedniej
+        startActivity(mainIntent);
     }
 
     private boolean isLoginFormCompleted(String email, String password) {
