@@ -1,6 +1,7 @@
 package pl.nowakprojects.firebaseblog;
 
 import android.content.Intent;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -10,12 +11,15 @@ import android.view.MenuItem;
 import android.view.View;
 
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
 public class MainActivity extends AppCompatActivity {
 
     private DatabaseReference mDatabase;
+    private FirebaseAuth mAuth;
+    private FirebaseAuth.AuthStateListener mAuthStateListener;
 
     private RecyclerView mBlogList;
 
@@ -24,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
 
         setupRecyclerView();
+        mAuth.addAuthStateListener(mAuthStateListener);
     }
 
     private void setupRecyclerView() {
@@ -51,8 +56,24 @@ public class MainActivity extends AppCompatActivity {
         initUserInterface();
     }
 
-    private void initFirebase(){
+    private void initFirebase() {
         mDatabase = FirebaseDatabase.getInstance().getReference().child("FirebaseBlog");
+        mAuth = FirebaseAuth.getInstance();
+        mAuthStateListener = new FirebaseAuth.AuthStateListener() {
+
+            @Override
+            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+                if (!userIsLogged()) {
+                    Intent loginIntent = new Intent(MainActivity.this, LoginActivity.class);
+                    loginIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP); //uzytkownik nie moze wrócić do poprzedniej
+                    startActivity(loginIntent);
+                }
+            }
+
+            private boolean userIsLogged(){
+                return mAuth.getCurrentUser() != null;
+            }
+        };
     }
 
     private void initUserInterface() {
@@ -73,8 +94,14 @@ public class MainActivity extends AppCompatActivity {
 
         switch(item.getItemId()){
             case R.id.action_add:
-                startActivity(new Intent(getApplicationContext(),PostActivity.class));
+                startActivity(new Intent(getApplicationContext(),PostActivity.class));break;
+            case R.id.action_logout:
+                logout();break;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void logout() {
+        mAuth.signOut();
     }
 }
