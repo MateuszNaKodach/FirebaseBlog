@@ -1,11 +1,19 @@
 package pl.nowakprojects.firebaseblog;
 
 import android.content.Context;
+import android.media.Image;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.NetworkPolicy;
 import com.squareup.picasso.Picasso;
@@ -18,10 +26,14 @@ class BlogViewHolder extends RecyclerView.ViewHolder {
 
     private View mView;
 
+    private ImageButton mLikeButton;
+
     public BlogViewHolder(View itemView) {
         super(itemView);
 
         mView = itemView;
+
+        mLikeButton = (ImageButton) mView.findViewById(R.id.likeButton);
     }
 
     void setTitle(String title){
@@ -57,5 +69,32 @@ class BlogViewHolder extends RecyclerView.ViewHolder {
 
     public View getView() {
         return mView;
+    }
+
+    public ImageButton getLikeButton() {
+        return mLikeButton;
+    }
+
+    void setLikeButton(final String postKey){
+        final DatabaseReference mLikesDatabase = FirebaseDatabase.getInstance().getReference().child("Likes");
+        final FirebaseAuth mAuth = FirebaseAuth.getInstance();
+
+        mLikesDatabase.addValueEventListener(new ValueEventListener() {
+            private boolean checkIfUserAlreadyLikeThisPost(DataSnapshot dataSnapshot, String postKey) {
+                return dataSnapshot.child(postKey).hasChild(mAuth.getCurrentUser().getUid());
+            }
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if(checkIfUserAlreadyLikeThisPost(dataSnapshot,postKey))
+                    mLikeButton.setImageResource(R.drawable.like_red);
+                else
+                    mLikeButton.setImageResource(R.drawable.like_grey);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
     }
 }

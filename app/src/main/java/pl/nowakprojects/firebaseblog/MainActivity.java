@@ -10,7 +10,6 @@ import android.support.v7.widget.RecyclerView;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Toast;
 
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.google.firebase.auth.FirebaseAuth;
@@ -24,12 +23,15 @@ public class MainActivity extends AppCompatActivity {
 
     private DatabaseReference mBlogPostsDatabase;
     private DatabaseReference mUsersDatabase;
+    private DatabaseReference mLikeDatabase;
     private FirebaseAuth mAuth;
     private FirebaseAuth.AuthStateListener mAuthStateListener;
 
     private ProgressDialog mProgressDialog;
 
     private RecyclerView mBlogList;
+
+    private boolean mProcessLike = false;
 
     @Override
     protected void onStart() {
@@ -48,12 +50,13 @@ public class MainActivity extends AppCompatActivity {
                 ) {
             @Override
             protected void populateViewHolder(BlogViewHolder viewHolder, Blog model, int position) {
-                final String post_key = getRef(position).getKey();
+                final String postKey = getRef(position).getKey();
 
                 viewHolder.setTitle(model.getTitle());
                 viewHolder.setDesc(model.getDesc());
                 viewHolder.setImage(MainActivity.this, model.getImage());
                 viewHolder.setUsername(model.getUsername());
+                viewHolder.setLikeButton(postKey);
 
                 viewHolder.getView().setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -61,10 +64,45 @@ public class MainActivity extends AppCompatActivity {
 
                     }
                 });
+
+                viewHolder.getLikeButton().setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        mProcessLike=true;
+
+                        likePost(postKey);
+                    }
+                });
             }
         };
 
         mBlogList.setAdapter(firebaseRecyclerAdapter);
+    }
+
+    private void likePost(final String postKey) {
+        mLikeDatabase.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if(mProcessLike) {
+                    if (checkIfUserAlreadyLikeThisPost(dataSnapshot, postKey))
+                        mLikeDatabase.child(postKey).child(mAuth.getCurrentUser().getUid()).removeValue();
+                    else
+                        mLikeDatabase.child(postKey).child(mAuth.getCurrentUser().getUid()).setValue("likes this post!");
+                }
+
+                mProcessLike = false;
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+    private boolean checkIfUserAlreadyLikeThisPost(DataSnapshot dataSnapshot, String postKey) {
+        return dataSnapshot.child(postKey).hasChild(mAuth.getCurrentUser().getUid());
     }
 
     @Override
@@ -83,6 +121,7 @@ public class MainActivity extends AppCompatActivity {
         mBlogPostsDatabase.keepSynced(true);
         mUsersDatabase = FirebaseDatabase.getInstance().getReference().child("Users");
         mUsersDatabase.keepSynced(true);
+        mLikeDatabase = FirebaseDatabase.getInstance().getReference().child("Likes");
 
         mAuth = FirebaseAuth.getInstance();
         mAuthStateListener = new FirebaseAuth.AuthStateListener() {
