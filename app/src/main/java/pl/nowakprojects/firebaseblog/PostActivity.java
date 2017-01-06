@@ -11,7 +11,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -66,9 +65,9 @@ public class PostActivity extends AppCompatActivity {
         mProgressDialog = new ProgressDialog(this);
         mProgressDialog.setMessage("Posting to Blog...");
 
-        mPostTitle = (EditText) findViewById(R.id.titleTextField);
+        mPostTitle = (EditText) findViewById(R.id.singleBlogTitle);
         mPostDesc = (EditText) findViewById(R.id.descriptionTextField);
-        mSelectImage = (ImageButton) findViewById(R.id.selectImage);
+        mSelectImage = (ImageButton) findViewById(R.id.singleBlogImage);
         mSelectImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

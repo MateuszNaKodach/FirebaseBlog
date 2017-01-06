@@ -61,7 +61,9 @@ public class MainActivity extends AppCompatActivity {
                 viewHolder.getView().setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-
+                        Intent singleBlogIntent = new Intent(MainActivity.this,SingleBlogActivity.class);
+                        singleBlogIntent.putExtra("BLOG_ID",postKey);
+                        startActivity(singleBlogIntent);
                     }
                 });
 
